@@ -9,6 +9,7 @@
   .include "ip65/inc/net.i"
   
   .include "macros.s"
+  .include "util.s"
   
 .ifndef KPR_API_VERSION_NUMBER
   .define EQU     =
@@ -49,9 +50,12 @@ init:
   sta $d020
   sta $d021
 
-  jsr network_init_dhcp  
+  jsr network_init_dhcp
+  
+:  
+  jsr PROMPT
   jsr tftpget
-   
+  bcs :-  
     
 ; -------------------------------------------------------------------------
 ; Main Entry point - Jump into the downloaded code.
@@ -89,7 +93,7 @@ main:
 network_init_dhcp:
   
   kernal_print NETWORKMESSAGE
-  
+
   init_ip_via_dhcp   
   
   lda TFTP_SERVER_IP+0
@@ -109,6 +113,13 @@ network_init_dhcp:
   jsr print_ip_config
   jsr print_cr  
   rts
+
+; -------------------------------------------------------------------------
+; Prompt for filename
+PROMPT:                         
+  kernal_print PROMPTMESSAGE    
+  jsr FILTERED_TEXT
+  rts  
     
 ; -------------------------------------------------------------------------
 ; TFTP Get
@@ -116,7 +127,7 @@ network_init_dhcp:
 tftpget:
   kernal_print DOWNLOADMESSAGE
 
-  ldax #tftpname
+  ldax #GOTINPUT ; #tftpname
   stax tftp_filename
   
   ldax #$8000
@@ -130,18 +141,14 @@ tftpget:
   bcs tftperror
 
 tftpok: 
-  kernal_print OKMESSAGE 
+  kernal_print OKMESSAGE
+  clc 
   rts
-
 
 tftperror:
   kernal_print FAILMESSAGE
-:
-  lda #$07
-  sta $d020
-  lda #$02
-  sta $d020
-  jmp :-
+  sec
+  rts
 
 tftpprogress:
   stax saveax     ; Save pointer to block of data 
@@ -177,34 +184,37 @@ CG_GR2 = 152
 CG_LGN = 153
 CG_LBL = 154
 CG_GR3 = 155
-CG_RVS = 18 ;revs-on
+CG_RVS = 18  ;revs-on
 CG_NRM = 146 ;revs-off
 
-CG_DCS = 8  ;disable shift+C=
-CG_ECS = 9  ;enable shift+C=
+CG_DCS = 8   ;disable shift+C=
+CG_ECS = 9   ;enable  shift+C=
 
-CG_LCS = 14 ;switch to lowercase
+CG_LCS = 14  ;switch to lowercase
 CG_UCS = 142 ;switch to uppercase
  
    
 NETWORKMESSAGE:
-  .byte 147, CG_LCS, CG_DCS, CG_LGN
-  .byte "tftp nETWORK cARTRIDGE bOOTLOADER 1.0",13,13
+  .byte 147, CG_LCS, CG_DCS, CG_YEL
+  .byte "tftp nETWORK cARTRIDGE bOOTLOADER 1.0", 13,13
+  .byte CG_LBL
+  .byte 0
+  
+PROMPTMESSAGE:
+  .byte CG_GR2
+  .byte "fILENAME: ", CG_WHT
   .byte 0
 
 DOWNLOADMESSAGE:
-  .byte "dOWNLOADING CART DATA"
+  .byte " ", 13, 13, CG_LGN, "dOWNLOADING CART DATA", CG_GRN
   .byte 0
 
 OKMESSAGE:
-  .byte "ok",13
+  .byte CG_LGN, "ok",13
   .byte 0                      
 
 FAILMESSAGE:
-  .byte "...failed",13
+  .byte CG_RED, "...failed",13,13
   .byte 0                    
-  
-tftpname:
-  .byte "aic2004a.8000.bin", 0
 
 ; EOF!

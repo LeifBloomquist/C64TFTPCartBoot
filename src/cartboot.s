@@ -164,8 +164,7 @@ saveax:
 ; Network Constants and Data  
   
 TFTP_SERVER_IP:
-;  .byte 208,79,218,201    ; Vortex VPS
-  .byte 208,79,219,119     ; Rogue VPS  
+  .byte 208,79,218,201    ; Rogue VPS 
 
 ;c64 c/g 
 CG_BLK = 144
